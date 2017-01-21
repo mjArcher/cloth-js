@@ -1,0 +1,54 @@
+<script>
+var context;
+var xc=500;
+var yc=500;
+var dx=5;
+var dy=5;
+var angle=0;
+var radius=20;
+var x=xc;
+var y=yc;
+
+function init()
+{
+  context=myCanvas.getContext('2d');
+  setInterval(draw,100);
+}
+
+//context.beginPath();
+//  context.fillStyle="#0000ff";
+//  // Draws a circle of radius 20 at the coordinates 100,100 on the canvas
+//  context.arc(100,100,20,0,Math.PI*2,true); context.closePath();
+//  context.fill();
+
+
+function draw()
+{
+  <!-- context.clearRect(0,0, 1000,1000); -->
+  context.beginPath();
+  context.fillStyle="#0000ff";
+  // Draws a circle of radius 20 at the coordinates 100,100 on the canvas
+  context.arc(x,y,5,0,Math.PI*2,true);
+  context.closePath();
+  context.fill();
+  //x+=dx;
+  //y+=dy;
+  //dy+=1
+  //dx+=1
+  angle+=10;
+  radius+=0.5;
+
+  x=xc + radius*Math.cos(angle * (Math.PI / 180));
+  y=yc + radius*Math.sin(angle * (Math.PI / 180));
+  <!-- if(x > 1000){ break; } -->
+  console.log(x);
+}
+
+
+</script>
+
+<body onload="init();">
+    <canvas id="myCanvas" width="1000" height="1000">
+    </canvas> 
+</body>
+
