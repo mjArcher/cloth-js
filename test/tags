@@ -1,0 +1,83 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+AccumulateForces	cloth.html	/^function AccumulateForces()$/;"	f
+AccumulateForces	cloth.js	/^function AccumulateForces()$/;"	f
+Box	cloth.html	/^function Box() $/;"	f
+Box	touch.html	/^function Box() {$/;"	f
+HEIGHT	cloth.js	/^var HEIGHT;$/;"	v
+INTERVAL	cloth.js	/^var INTERVAL = 50;  \/\/ how often, in milliseconds, we check to see if a redraw is needed$/;"	v
+SatisfyConstraints	cloth.html	/^function SatisfyConstraints() $/;"	f
+SatisfyConstraints	cloth.js	/^function SatisfyConstraints() $/;"	f
+Verlet	cloth.html	/^function Verlet() $/;"	f
+Verlet	cloth.js	/^function Verlet() {$/;"	f
+WIDTH	cloth.js	/^var WIDTH;$/;"	v
+addRect	cloth.html	/^function addRect(x, y, w, h, fill) $/;"	f
+addRect	cloth.js	/^function addRect(x, y, w, h, fill) {$/;"	f
+addRect	touch.html	/^function addRect(x, y, w, h, fill) {$/;"	f
+boxes	cloth.js	/^var boxes = []; $/;"	v
+boxes_old	cloth.js	/^var boxes_old = [];$/;"	v
+canvas	cloth.js	/^var canvas;$/;"	v
+canvas.onselectstart	cloth.js	/^  gctx = ghostcanvas.getContext('2d');$/;"	f
+canvasValid	cloth.js	/^var canvasValid = false;$/;"	v
+clear	cloth.html	/^function clear(c) $/;"	f
+clear	cloth.js	/^function clear(c) {$/;"	f
+clear	touch.html	/^function clear(c) {$/;"	f
+connectivitySetup	cloth.html	/^function connectivitySetup() $/;"	f
+connectivitySetup	cloth.js	/^function connectivitySetup() {$/;"	f
+conns	cloth.js	/^var conns = []; $/;"	v
+constraint	cloth.html	/^function constraint(a, b, restlen) $/;"	f
+constraint	cloth.js	/^function constraint(a, b, restlen)$/;"	c
+ctx	cloth.js	/^var ctx;$/;"	v
+draw	ball.html	/^function draw()$/;"	f
+draw	cloth.html	/^function draw() $/;"	f
+draw	cloth.js	/^function draw() {$/;"	f
+draw	touch.html	/^function draw() {$/;"	f
+drawshape	cloth.html	/^function drawshape(context, shape, fill) $/;"	f
+drawshape	cloth.js	/^function drawshape(context, shape, fill) {$/;"	f
+drawshape	touch.html	/^function drawshape(context, shape, fill) {$/;"	f
+fall	cloth.html	/^function fall()$/;"	f
+fall	cloth.js	/^function fall()$/;"	f
+fall	touch.html	/^function fall()$/;"	f
+gctx	cloth.js	/^var gctx; \/\/ fake canvas context$/;"	v
+getMouse	cloth.html	/^function getMouse(e) $/;"	f
+getMouse	touch.html	/^function getMouse(e) {$/;"	f
+ghostcanvas	cloth.js	/^var ghostcanvas;$/;"	v
+hello	cloth.html	/^function hello()$/;"	f
+hello	cloth.js	/^function hello(){$/;"	f
+hello	touch.html	/^function hello(){$/;"	f
+init	ball.html	/^function init()$/;"	f
+init	cloth.html	/^function init() $/;"	f
+init	cloth.js	/^function init() {$/;"	f
+init	touch.html	/^function init() {$/;"	f
+invalidate	cloth.html	/^function invalidate() $/;"	f
+invalidate	cloth.js	/^function invalidate() {$/;"	f
+invalidate	touch.html	/^function invalidate() {$/;"	f
+isDrag	cloth.js	/^var isDrag = false;$/;"	v
+moveFirst	cloth.html	/^function moveFirst()$/;"	f
+moveFirst	cloth.js	/^function moveFirst()$/;"	f
+moveFirst	touch.html	/^function moveFirst()$/;"	f
+mx	cloth.js	/^var mx, my; \/\/ mouse coordinates$/;"	v
+myDblClick	cloth.html	/^function myDblClick(e) $/;"	f
+myDblClick	cloth.js	/^function myDblClick(e) {$/;"	f
+myDblClick	touch.html	/^function myDblClick(e) {$/;"	f
+myDown	cloth.html	/^function myDown(e)$/;"	f
+myDown	cloth.js	/^function myDown(e){$/;"	f
+myDown	touch.html	/^function myDown(e){$/;"	f
+myMove	cloth.html	/^function myMove(e)$/;"	f
+myMove	cloth.js	/^function myMove(e){$/;"	f
+myMove	touch.html	/^function myMove(e){$/;"	f
+mySel	cloth.js	/^var mySel; $/;"	v
+mySelColor	cloth.js	/^var mySelColor = '#CC0000';$/;"	v
+mySelWidth	cloth.js	/^var mySelWidth = 2;$/;"	v
+myUp	cloth.html	/^function myUp()$/;"	f
+myUp	cloth.js	/^function myUp(){$/;"	f
+myUp	touch.html	/^function myUp(){$/;"	f
+nodes	cloth.js	/^var nodes = 5;$/;"	v
+offsetx	cloth.js	/^var offsetx, offsety;$/;"	v
+stylePaddingLeft	cloth.js	/^var stylePaddingLeft, stylePaddingTop, styleBorderLeft, styleBorderTop;$/;"	v
+timeStep	cloth.html	/^function timeStep()$/;"	f
+timeStep	cloth.js	/^function timeStep()$/;"	f
