@@ -1,6 +1,5 @@
 
 var nodes = 51;
-
 // holds all our rectangles
 var boxes = []; 
 var boxes_old = [];
@@ -83,7 +82,7 @@ function addRect(x, y, w, h, fill)
   recto.x = x;
   recto.y = y;
   recto.w = w;
-  recto.w = h;
+  recto.h = h;
   boxes_old.push(recto);
 	invalidate();
 }
