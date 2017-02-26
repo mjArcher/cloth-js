@@ -1,3 +1,6 @@
+//think of some damping you could do?
+//problem is that the constraints are still satisfied if the bottom level settles above the next level up?
+//move like a face?
 var offsetxm;
 var offsetym;
 // holds all our rectangles
@@ -13,7 +16,7 @@ var canvas;
 var ctx;
 var WIDTH;
 var HEIGHT;
-var INTERVAL = 10;  // how often, in milliseconds, we check to see if a redraw is needed - VARY 
+var INTERVAL = 50;  // how often, in milliseconds, we check to see if a redraw is needed - VARY 
 
 var isDrag = false;
 var mx, my; // mouse coordinates
@@ -35,8 +38,9 @@ var mySelWidth = 2;
 // we use a fake canvas to draw individual shapes for selection testing
 var ghostcanvas;
 var gctx; // fake canvas context
-var gap = 5;
-var nodes = 51;
+var gap = 30;
+var xnodes = 15;
+var ynodes = 8;
 
 // since we can drag from anywhere in a node
 // instead of just its x/y corner, we need to save
@@ -124,8 +128,8 @@ function init()
   // add custom initialization here:
 
   // add an orange rectangle
-  var ynodes = nodes;
-  var xnodes = nodes;
+  // var ynodes = nodes;
+  // var xnodes = nodes;
 
   var count = 0;
   
@@ -159,15 +163,15 @@ function constraint(a, b, restlen)
 // acceleration ay = 1 
 // m_fTimeStep = 0.2;
 
-var NUM_ITERATIONS=5;
-var GRAVITY=1;
-var m_fTimeStep = 0.1;
+var NUM_ITERATIONS=2;
+var GRAVITY=0.1;
+var m_fTimeStep = 2.9;
 
 
 // for the time integration step we need to 
 function Verlet() 
 {
-  var NUM_PARTICLES = nodes*nodes;
+  var NUM_PARTICLES = xnodes*ynodes;
   //length of boxes should be the same as nodes*nodes
   // console.log(NUM_PARTICLES + " " + boxes.length);
   // console.log("called");
@@ -201,6 +205,11 @@ function Verlet()
   }
 }
 
+function fastsqrt()
+{
+  var guess = 10;
+}
+
 //looping over
 function SatisfyConstraints() 
 {
@@ -210,7 +219,7 @@ function SatisfyConstraints()
     for(var i=0; i<NUM_CONSTRAINTS; i++) {
       var a = conns[i].partA;
       var b = conns[i].partB;
-      // console.log(a + " " + b);
+      console.log(a + " " + b);
       var boxa = boxes[a];
       var boxb = boxes[b];
     
@@ -219,7 +228,7 @@ function SatisfyConstraints()
       //implement vector dot
       // console.log(a + " " + boxa.x);  
       var deltaLength = Math.sqrt(deltax*deltax + deltay*deltay); // CHANGE: This sqr root
-      var diff = (deltaLength-conns[i].restLength)/deltaLength;
+      var diff = (deltaLength-gap)/deltaLength;
       // console.log(deltax + " " + boxb.x);
       //
 
@@ -246,10 +255,10 @@ function SatisfyConstraints()
     //PINNED CLOTH PARTICLES:
     boxes[0].x = offsetx;
     boxes[0].y = offsety;
-    // boxes[(nodes-1)/2].x = ((nodes-1)*len/2) + offsetx;
-    // boxes[(nodes-1)/2].y = offsety;
-    boxes[nodes-1].x = ((nodes-1)*gap) + offsetx;
-    boxes[nodes-1].y = offsety;
+    boxes[Math.round(xnodes/2)-1].x = ((xnodes-1)*gap/2) + offsetx;
+    boxes[Math.round(xnodes/2)-1].y = offsety;
+    boxes[xnodes-1].x = ((xnodes-1)*gap) + offsetx;
+    boxes[xnodes-1].y = offsety;
   }
 
   // constrain a few of the the cloth particles to the origin 
@@ -260,15 +269,14 @@ function connectivitySetup()
   //first connect cols (easier to visualise
   console.log("connectivity setup");
   var a, b;
-  var n = nodes-1;
   var restLength = gap; // this will need changing 
   var offset;
   //n = 4
-  for(var off=0; off <= n; off++) {
-    offset = off*(n+1);
-    for(var i=0; i<n; i++) {
+  for(var off=0; off <= ynodes-1; off++) {
+    offset = off*xnodes;
+    for(var i=0; i<xnodes-1; i++) {
       a = i + offset; //next row
-      b = i + offset + 1;
+      b = i + 1 + offset;
       console.log("a " + a + " b " + b);
       // <!-- console.log(a + " " + b); -->
       var cons = new constraint(a,b,restLength);
@@ -276,15 +284,18 @@ function connectivitySetup()
     }
   }
 
-  for (var i = 0; i <= n ; i++){
-    for (var off = 0; off < n; off++) {
-      a = off*nodes + i;
-      b = (off+1)*nodes + i; 
+  for (var i = 0; i <= xnodes-1; i++){
+    for (var off = 0; off < ynodes-1; off++) {
+      a = off*xnodes + i;
+      b = (off+1)*xnodes + i; 
       console.log("a " + a + " b " + b);
       var cons = new constraint(a,b, restLength);
       conns.push(cons);
     }
   }
+
+  //number of constraints
+  console.log(conns.length);
 
   //check code
   // console.log(conns.length);
@@ -315,25 +326,54 @@ function draw()
     // Add stuff you want drawn in the background all the time here
 
     // draw all boxes
-    var l = boxes.length;
-    for (var i = 0; i < l; i++) {
-      drawshape(ctx, boxes[i], boxes[i].fill);
-    }
+    // var l = boxes.length;
+    // for (var i = 0; i < l; i++) {
+    //   drawshape(ctx, boxes[i], boxes[i].fill);
+    // }
 
     // draw selection
     // right now this is just a stroke along the edge of the selected box
-    if (mySel != null) {
-      ctx.strokeStyle = mySelColor;
-      ctx.lineWidth = mySelWidth;
-      ctx.strokeRect(mySel.x,mySel.y,mySel.w,mySel.h);
-    }
+    // if (mySel != null) {
+    //   ctx.strokeStyle = mySelColor;
+    //   ctx.lineWidth = mySelWidth;
+    //   ctx.strokeRect(mySel.x,mySel.y,mySel.w,mySel.h);
+    // }
 
     // Add stuff you want drawn on top all the time here
 
-    canvasValid = true;
+    // canvasValid = true;
     //if(mySel != null)
     //  fall();
     timeStep();
+    drawLines();
+  }
+}
+
+function drawLines()
+{
+  // ctx.moveTo(100, 150);
+  // ctx.lineTo(450, 50);
+  // ctx.strokeStyle = '#ff0000';
+  // ctx.lineWidth = 1;
+
+  // ctx.stroke();
+
+  for(i=0; i<conns.length;i++)
+  {
+    // console.log("called");
+    var a = conns[i].partA;
+    var b = conns[i].partB;
+    ctx.beginPath();
+    var boxa = boxes[a];
+    var boxb = boxes[b];
+    ctx.moveTo(boxa.x,boxa.y);
+    ctx.lineTo(boxb.x,boxb.y);
+
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = '#000000';
+    // ctx.moveTo(100, 150);
+    // ctx.context.lineTo(450, 50);
+    ctx.stroke();
   }
 }
 
@@ -343,6 +383,7 @@ function timeStep()
   Verlet();
   SatisfyConstraints();
 }
+
 
 //we need to add 
 
@@ -414,10 +455,10 @@ function myDown(e)
       console.log("Down" + i);
       mySel = boxes[i];
       mySeli=i;
-      // offsetxm = mx - mySel.x;
-      // offsetym = my - mySel.y;
-      // mySel.x = mx - offsetxm;
-      // mySel.y = my - offsetym;
+      var offsetxm = mx - mySel.x;
+      var offsetym = my - mySel.y;
+      mySel.x = mx - offsetxm;
+      mySel.y = my - offsetym;
       isDrag = true;//;
       canvas.onmousemove = myMove;
       invalidate();
