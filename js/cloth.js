@@ -1,5 +1,5 @@
-
-var nodes = 51;
+var offsetxm;
+var offsetym;
 // holds all our rectangles
 var boxes = []; 
 var boxes_old = [];
@@ -8,9 +8,7 @@ var conns = [];
 mx_e=0;
 my_e=0;
 var offsetx = 100;
-var offsety = 100;
-var offsetm = 400;
-var offsetm = 400;
+var offsety = 50;
 var canvas;
 var ctx;
 var WIDTH;
@@ -28,6 +26,7 @@ var canvasValid = false;
 // The node (if any) being selected.
 // If in the future we want to select multiple objects, this will get turned into an array
 var mySel; 
+var mySeli;
 
 // The selection color and width. Right now we have a red selection with a small width
 var mySelColor = '#CC0000';
@@ -36,7 +35,8 @@ var mySelWidth = 2;
 // we use a fake canvas to draw individual shapes for selection testing
 var ghostcanvas;
 var gctx; // fake canvas context
-var len = 5;
+var gap = 5;
+var nodes = 51;
 
 // since we can drag from anywhere in a node
 // instead of just its x/y corner, we need to save
@@ -130,9 +130,9 @@ function init()
   var count = 0;
   
   for (var i = 0; i < ynodes; i++) {
-    var y = i*len + offsety;
+    var y = i*gap + offsety;
     for (var j = 0; j < xnodes; j++) {
-      var x = j*len + offsetx;
+      var x = j*gap + offsetx;
       addRect(x, y, 4, 4, '#000000' );
       count += 1;
       // console.log(count);
@@ -148,46 +148,63 @@ function constraint(a, b, restlen)
   this.restLength = restlen; 
 }
 
+// CHANGES
+// ========
+// Want to stop updating the particle we have selected
+// Loop over array: 
+
+//need to specify timestep somewhere
+// var NUM_ITERATIONS=2;
+// Variables that dictate how the cloth behaves:
+// acceleration ay = 1 
+// m_fTimeStep = 0.2;
+
+var NUM_ITERATIONS=5;
+var GRAVITY=1;
+var m_fTimeStep = 0.1;
+
+
 // for the time integration step we need to 
 function Verlet() 
 {
-  var m_fTimeStep = 0.2;
   var NUM_PARTICLES = nodes*nodes;
   //length of boxes should be the same as nodes*nodes
   // console.log(NUM_PARTICLES + " " + boxes.length);
   // console.log("called");
+  // 72 constraints 
 
   for(var i=0; i < NUM_PARTICLES; i++)
   {
     // get the current position of the rectangle
-    var x = boxes[i].x;
-    var y = boxes[i].y;
-    var tx = x;
-    var ty = y;
-    var ox = boxes_old[i].x;
-    var oy = boxes_old[i].y;
-    var ax = 0;
-    var ay = 1;
-    boxes[i].x += x - ox + ax * m_fTimeStep*m_fTimeStep; 
-    boxes[i].y += y - oy + ay * m_fTimeStep*m_fTimeStep; 
-    // console.log("1 " + y + " " + oy + " " + boxes[i].y)
-    // // console.log( m_fTimeStep*m_fTimeStep);
-    // console.log("2 " + boxes_old[i].y);
-    ox = tx;
-    oy = ty;
-    // console.log("3 " + oy);
-    boxes_old[i].x = ox;
-    boxes_old[i].y = oy;
-    // console.log(boxes_old[i].y + " " + boxes[i].y);
-    // console.log(boxes[i].y - boxes_old[i].y);
+    if(i!=mySeli){
+      var x = boxes[i].x;
+      var y = boxes[i].y;
+      var temp_x = x;
+      var temp_y = y;
+      var ox = boxes_old[i].x;
+      var oy = boxes_old[i].y;
+      var ax = 0;
+      var ay = GRAVITY;
+      boxes[i].x += x - ox + ax * m_fTimeStep*m_fTimeStep; 
+      boxes[i].y += y - oy + ay * m_fTimeStep*m_fTimeStep; 
+      // console.log("1 " + y + " " + oy + " " + boxes[i].y)
+      // // console.log( m_fTimeStep*m_fTimeStep);
+      // console.log("2 " + boxes_old[i].y);
+      ox = temp_x;
+      oy = temp_y;
+      // console.log("3 " + oy);
+      boxes_old[i].x = ox;
+      boxes_old[i].y = oy;
+      // console.log(boxes_old[i].y + " " + boxes[i].y);
+      // console.log(boxes[i].y - boxes_old[i].y);
+    }
   }
 }
 
-//need to specify timestep somewhere
-var NUM_ITERATIONS=4;
-
+//looping over
 function SatisfyConstraints() 
 {
+
   var NUM_CONSTRAINTS = conns.length;
   for(var j=0; j<NUM_ITERATIONS; j++) {
     for(var i=0; i<NUM_CONSTRAINTS; i++) {
@@ -201,25 +218,38 @@ function SatisfyConstraints()
       var deltay = boxb.y - boxa.y;
       //implement vector dot
       // console.log(a + " " + boxa.x);  
-      var deltaLength = Math.sqrt(deltax*deltax + deltay*deltay);
+      var deltaLength = Math.sqrt(deltax*deltax + deltay*deltay); // CHANGE: This sqr root
       var diff = (deltaLength-conns[i].restLength)/deltaLength;
       // console.log(deltax + " " + boxb.x);
-      boxa.x += deltax*0.5*diff;
-      boxa.y += deltay*0.5*diff;
-      boxb.x -= deltax*0.5*diff;
-      boxb.y -= deltay*0.5*diff;
+      //
+
+      if(a == mySeli){
+        boxb.x -= deltax*0.5*diff;
+        boxb.y -= deltay*0.5*diff;
+      }
+      else if(b == mySeli)
+      {
+        boxa.x += deltax*0.5*diff;
+        boxa.y += deltay*0.5*diff;
+      }
+      else{
+        boxa.x += deltax*0.5*diff;
+        boxa.y += deltay*0.5*diff;
+        boxb.x -= deltax*0.5*diff;
+        boxb.y -= deltay*0.5*diff;
+      }
       // boxes[a] = boxa;
       // boxes[b] = boxb;
     }
     //constrain upper left and upper right particles to the origin (2)
     //
+    //PINNED CLOTH PARTICLES:
     boxes[0].x = offsetx;
     boxes[0].y = offsety;
-    boxes[(nodes-1)/2].x = ((nodes-1)*len/2) + offsetx;
-    boxes[(nodes-1)/2].y = offsety;
-    boxes[nodes-1].x = ((nodes-1)*len) + offsetx;
+    // boxes[(nodes-1)/2].x = ((nodes-1)*len/2) + offsetx;
+    // boxes[(nodes-1)/2].y = offsety;
+    boxes[nodes-1].x = ((nodes-1)*gap) + offsetx;
     boxes[nodes-1].y = offsety;
-    //
   }
 
   // constrain a few of the the cloth particles to the origin 
@@ -231,7 +261,7 @@ function connectivitySetup()
   console.log("connectivity setup");
   var a, b;
   var n = nodes-1;
-  var restLength = len; // this will need changing 
+  var restLength = gap; // this will need changing 
   var offset;
   //n = 4
   for(var off=0; off <= n; off++) {
@@ -239,6 +269,7 @@ function connectivitySetup()
     for(var i=0; i<n; i++) {
       a = i + offset; //next row
       b = i + offset + 1;
+      console.log("a " + a + " b " + b);
       // <!-- console.log(a + " " + b); -->
       var cons = new constraint(a,b,restLength);
       conns.push(cons);
@@ -249,6 +280,7 @@ function connectivitySetup()
     for (var off = 0; off < n; off++) {
       a = off*nodes + i;
       b = (off+1)*nodes + i; 
+      console.log("a " + a + " b " + b);
       var cons = new constraint(a,b, restLength);
       conns.push(cons);
     }
@@ -271,12 +303,12 @@ function clear(c)
   c.clearRect(0, 0, WIDTH, HEIGHT);
 }
 
+//this is no longer valid:
 // While draw is called as often as the INTERVAL variable demands,
 // It only ever does something if the canvas gets invalidated by our code
 function draw() 
 {
   canvasValid = false;
-  console.log("draw");
   if (canvasValid == false) {
     clear(ctx);
 
@@ -351,11 +383,11 @@ function myMove(e)
   if (isDrag){
     getMouse(e);
 
-    mySel.x = mx - offsetxm;
-    mySel.y = my - offsetym;   
+    mySel.x = mx;// - offsetxm;
+    mySel.y = my; //- offsetym;   
     //<!-- moveFirst() -->
       // something is changing position so we better invalidate the canvas!
-      invalidate();
+    invalidate();
   }
 }
 
@@ -375,16 +407,18 @@ function myDown(e)
 
     // get image data at the mouse x,y pixel
     var imageData = gctx.getImageData(mx, my, 1, 1);
-    var index = (mx + my * imageData.width) * 4;
+    var index = (mx + my * imageData.width) * 4; //what is this used for?
 
     // if the mouse pixel exists, select and break
     if (imageData.data[3] > 0) {
+      console.log("Down" + i);
       mySel = boxes[i];
-      offsetxm = mx - mySel.x;
-      offsetym = my - mySel.y;
-      mySel.x = mx - offsetxm;
-      mySel.y = my - offsetym;
-      isDrag = true;
+      mySeli=i;
+      // offsetxm = mx - mySel.x;
+      // offsetym = my - mySel.y;
+      // mySel.x = mx - offsetxm;
+      // mySel.y = my - offsetym;
+      isDrag = true;//;
       canvas.onmousemove = myMove;
       invalidate();
       clear(gctx);
@@ -413,10 +447,11 @@ function myUp()
   //}
 
 
-  if(mySel != null && mySel.y > 0) { 
-    fall();
-  }
+  // if(mySel != null && mySel.y > 0) { 
+  //   fall();
+  // }
 
+  mySeli=null;
   isDrag = false;
   canvas.onmousemove = null;
 }
@@ -433,9 +468,9 @@ function myDblClick(e)
   getMouse(e);
   // // for this method width and height determine the starting X and Y, too.
   // // so I left them as vars in case someone wanted to make them args for something and copy this code
-  // var width = 20;
-  // var height = 20;
-  // addRect(mx - (width / 2), my - (height / 2), width, height, '#77DD44');
+  var width = 20;
+  var height = 20;
+  addRect(mx - (width / 2), my - (height / 2), width, height, '#77DD44');
 }
 
 function invalidate() 
