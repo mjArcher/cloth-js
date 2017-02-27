@@ -16,7 +16,7 @@ var canvas;
 var ctx;
 var WIDTH;
 var HEIGHT;
-var INTERVAL = 50;  // how often, in milliseconds, we check to see if a redraw is needed - VARY 
+var INTERVAL = 25;  // how often, in milliseconds, we check to see if a redraw is needed - VARY 
 
 var isDrag = false;
 var mx, my; // mouse coordinates
@@ -39,7 +39,8 @@ var mySelWidth = 2;
 var ghostcanvas;
 var gctx; // fake canvas context
 var gap = 30;
-var xnodes = 15;
+var gapsq = gap*gap;
+var xnodes = 16;
 var ynodes = 8;
 
 // since we can drag from anywhere in a node
@@ -163,9 +164,9 @@ function constraint(a, b, restlen)
 // acceleration ay = 1 
 // m_fTimeStep = 0.2;
 
-var NUM_ITERATIONS=2;
-var GRAVITY=0.1;
-var m_fTimeStep = 2.9;
+var NUM_ITERATIONS=1;
+var GRAVITY=0.01;
+var m_fTimeStep = 3;
 
 
 // for the time integration step we need to 
@@ -219,33 +220,61 @@ function SatisfyConstraints()
     for(var i=0; i<NUM_CONSTRAINTS; i++) {
       var a = conns[i].partA;
       var b = conns[i].partB;
-      console.log(a + " " + b);
-      var boxa = boxes[a];
-      var boxb = boxes[b];
+      // console.log(a + " " + b);
+      var box1 = boxes[a];
+      var box2 = boxes[b];
     
-      var deltax = boxb.x - boxa.x;
-      var deltay = boxb.y - boxa.y;
+      var deltax = box2.x - box1.x;
+      var deltay = box2.y - box1.y;
       //implement vector dot
       // console.log(a + " " + boxa.x);  
-      var deltaLength = Math.sqrt(deltax*deltax + deltay*deltay); // CHANGE: This sqr root
-      var diff = (deltaLength-gap)/deltaLength;
+      // var deltaLength = Math.sqrt(deltax*deltax + deltay*deltay); // CHANGE: This sqr root
+      // var diff = (deltaLength-gap)/deltaLength;
       // console.log(deltax + " " + boxb.x);
-      //
+     
 
+      var dsq = deltax*deltax + deltay*deltay;
+      var diff=((gapsq/(dsq+gapsq))-0.5)
+      deltax*=diff;
+      // if(i==0){
+      //   console.log(dsq);
+      // }
+      deltay*=diff;
+      // if(i==0){
+      //   console.log(dsq);
+      // }
+      // console.log("it")
+
+      // if(a == mySeli){
+      //   // boxb.x -= deltax*0.5*diff;
+      //   // boxb.y -= deltay*0.5*diff;
+      // }
+      // else if(b == mySeli)
+      // {
+      //   // boxa.x += deltax*0.5*diff;
+      //   // boxa.y += deltay*0.5*diff;
+      // }
+      // else{
+        // box1.x -= deltax;
+        // box1.y -= deltay;
+        // box2.x += deltax;
+        // box2.y += deltay;
+      // }
+      
       if(a == mySeli){
-        boxb.x -= deltax*0.5*diff;
-        boxb.y -= deltay*0.5*diff;
+        box2.x += deltax;
+        box2.y += deltay;
       }
       else if(b == mySeli)
       {
-        boxa.x += deltax*0.5*diff;
-        boxa.y += deltay*0.5*diff;
+        box1.x -= deltax;
+        box1.y -= deltay;
       }
       else{
-        boxa.x += deltax*0.5*diff;
-        boxa.y += deltay*0.5*diff;
-        boxb.x -= deltax*0.5*diff;
-        boxb.y -= deltay*0.5*diff;
+        box1.x -= deltax;
+        box1.y -= deltay;
+        box2.x += deltax;
+        box2.y += deltay;
       }
       // boxes[a] = boxa;
       // boxes[b] = boxb;
@@ -255,8 +284,8 @@ function SatisfyConstraints()
     //PINNED CLOTH PARTICLES:
     boxes[0].x = offsetx;
     boxes[0].y = offsety;
-    boxes[Math.round(xnodes/2)-1].x = ((xnodes-1)*gap/2) + offsetx;
-    boxes[Math.round(xnodes/2)-1].y = offsety;
+    // boxes[Math.round(xnodes/2)-1].x = ((xnodes-1)*gap/2) + offsetx;
+    // boxes[Math.round(xnodes/2)-1].y = offsety;
     boxes[xnodes-1].x = ((xnodes-1)*gap) + offsetx;
     boxes[xnodes-1].y = offsety;
   }
