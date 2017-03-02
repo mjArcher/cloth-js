@@ -1,18 +1,18 @@
-//think of some damping you could do?
-//problem is that the constraints are still satisfied if the bottom level settles above the next level up?
-//move like a face?
+
 var offsetxm;
 var offsetym;
-// holds all our rectangles
+// all rectangles
 var boxes = []; 
 var boxes_old = [];
-// holds all our connections
+var discs = []; 
+var discs_old = [];
+// all connections
 var conns = []; 
-mx_e=0;
-my_e=0;
-var offsetx = 100;
-var offsety = 50;
+
 var canvas;
+var offsetx;// = canvas.width/2;
+var offsety;// = 50; //canvas.height/2;
+
 var ctx;
 var WIDTH;
 var HEIGHT;
@@ -27,7 +27,7 @@ var mx, my; // mouse coordinates
 var canvasValid = false;
 
 // The node (if any) being selected.
-// If in the future we want to select multiple objects, this will get turned into an array
+// If in the future we want to select multiple object, turn into array
 var mySel; 
 var mySeli;
 
@@ -40,56 +40,50 @@ var ghostcanvas;
 var gctx; // fake canvas context
 var gap = 30;
 var gapsq = gap*gap;
-var xnodes = 16;
-var ynodes = 8;
+var gappsq = 2*gapsq;
+var diag = Math.sqrt(gappsq);
+var xnodes = 15;
+var ynodes = 10;
+var NUM_ITERATIONS=1;
+var GRAVITY=0.01;
+var m_fTimeStep = 4;
 
 // since we can drag from anywhere in a node
 // instead of just its x/y corner, we need to save
 // the offset of the mouse when we start dragging.
-var offsetx, offsety;
+var offsetmx, offsetmy;
 
 // Padding and border style widths for mouse offsets
 var stylePaddingLeft, stylePaddingTop, styleBorderLeft, styleBorderTop;
+
 
 function Box() 
 {
 	this.x = 0;
 	this.y = 0;
-	this.w = 0.5; // default width and height?
-	this.h = 0.5;
+	this.w = 5; // default width and height?
+	this.h = 5;
 	this.fill = '#000000';
 }
 
-// just need an array of old coordinates
-function moveFirst()
-{
-	firstSel = boxes[0];	
-  //difference between old coords and new
-  
-  console.log(mx_e, my_e);
-	firstSel.x = mx;
-	firstSel.y = my;
-}
+function addDisc(px, py, pr){
 
-//Initialize a new Box, add it, and invalidate the canvas
-function addRect(x, y, w, h, fill) 
-{
-  // console.log("called");
-	var rect = new Box;
-	rect.x = x;
-	rect.y = y;
-	rect.w = w;
-  rect.h = h;
-	rect.fill = fill;
-	boxes.push(rect);
-  // also initialise boxes_old function
-  var recto = new Box;
-  recto.x = x;
-  recto.y = y;
-  recto.w = w;
-  recto.h = h;
-  boxes_old.push(recto);
-	invalidate();
+  var disc = {
+    x: px,
+    y: py,
+    radius: pr
+  };
+
+  boxes.push(disc);
+
+  var disc_old = {
+    x: px,
+    y: py,
+    radius: pr
+  };
+
+  boxes_old.push(disc_old);
+  invalidate();
 }
 
 // initialize our canvas, add a ghost canvas, set draw loop
@@ -97,8 +91,12 @@ function addRect(x, y, w, h, fill)
 function init() 
 {
   canvas = document.getElementById('myCanvas');
-  HEIGHT = canvas.height;
-  WIDTH = canvas.width;
+  canvas.height = window.innerHeight;
+  canvas.width = window.innerWidth;
+  HEIGHT =  canvas.height;
+  WIDTH =  canvas.width;
+  offsetx = WIDTH/2;
+  offsety = HEIGHT/4;
   ctx = canvas.getContext('2d');
   ghostcanvas = document.createElement('canvas');
   ghostcanvas.height = HEIGHT;
@@ -127,20 +125,15 @@ function init()
   canvas.ondblclick = myDblClick;
 
   // add custom initialization here:
-
-  // add an orange rectangle
-  // var ynodes = nodes;
-  // var xnodes = nodes;
-
   var count = 0;
   
   for (var i = 0; i < ynodes; i++) {
     var y = i*gap + offsety;
     for (var j = 0; j < xnodes; j++) {
       var x = j*gap + offsetx;
-      addRect(x, y, 4, 4, '#000000' );
-      count += 1;
-      // console.log(count);
+      // addRect(x, y, 10, 10, '#000000' );
+      addDisc(x, y, 2.5);
+      count++;
     }
   }
   connectivitySetup();
@@ -153,30 +146,12 @@ function constraint(a, b, restlen)
   this.restLength = restlen; 
 }
 
-// CHANGES
-// ========
-// Want to stop updating the particle we have selected
-// Loop over array: 
 
-//need to specify timestep somewhere
-// var NUM_ITERATIONS=2;
-// Variables that dictate how the cloth behaves:
-// acceleration ay = 1 
-// m_fTimeStep = 0.2;
-
-var NUM_ITERATIONS=1;
-var GRAVITY=0.005;
-var m_fTimeStep = 3;
-
-
-// for the time integration step we need to 
+// REF: 
 function Verlet() 
 {
   var NUM_PARTICLES = xnodes*ynodes;
-  //length of boxes should be the same as nodes*nodes
-  // console.log(NUM_PARTICLES + " " + boxes.length);
-  // console.log("called");
-  // 72 constraints 
+
 
   for(var i=0; i < NUM_PARTICLES; i++)
   {
@@ -206,61 +181,34 @@ function Verlet()
   }
 }
 
-function fastsqrt()
-{
-  var guess = 10;
-}
-
-//looping over
-function SatisfyConstraints() 
-{
-
+// REF:
+function SatisfyConstraints() {
   var NUM_CONSTRAINTS = conns.length;
   for(var j=0; j<NUM_ITERATIONS; j++) {
     for(var i=0; i<NUM_CONSTRAINTS; i++) {
       var a = conns[i].partA;
       var b = conns[i].partB;
-      // console.log(a + " " + b);
       var box1 = boxes[a];
       var box2 = boxes[b];
-    
       var deltax = box2.x - box1.x;
       var deltay = box2.y - box1.y;
-      //implement vector dot
+      
+      // Original Sqrt method:
       // console.log(a + " " + boxa.x);  
       // var deltaLength = Math.sqrt(deltax*deltax + deltay*deltay); // CHANGE: This sqr root
       // var diff = (deltaLength-gap)/deltaLength;
       // console.log(deltax + " " + boxb.x);
-     
-
+   
+      // distance between two points - sqrt replaced
+      // with Netwon Raphson iteration. 
       var dsq = deltax*deltax + deltay*deltay;
+      gapsq = conns[i].restLength*conns[i].restLength;
       var diff=((gapsq/(dsq+gapsq))-0.5)
-      deltax*=diff;
-      // if(i==0){
-      //   console.log(dsq);
-      // }
-      deltay*=diff;
-      // if(i==0){
-      //   console.log(dsq);
-      // }
-      // console.log("it")
-
-      // if(a == mySeli){
-      //   // boxb.x -= deltax*0.5*diff;
-      //   // boxb.y -= deltay*0.5*diff;
-      // }
-      // else if(b == mySeli)
-      // {
-      //   // boxa.x += deltax*0.5*diff;
-      //   // boxa.y += deltay*0.5*diff;
-      // }
-      // else{
-        // box1.x -= deltax;
-        // box1.y -= deltay;
-        // box2.x += deltax;
-        // box2.y += deltay;
-      // }
       
+      deltax*=diff;
+      deltay*=diff;
+      
+      // ensures that the 
       if(a == mySeli){
         box2.x += deltax;
         box2.y += deltay;
@@ -276,31 +224,39 @@ function SatisfyConstraints()
         box2.x += deltax;
         box2.y += deltay;
       }
-      // boxes[a] = boxa;
-      // boxes[b] = boxb;
     }
-    //constrain upper left and upper right particles to the origin (2)
-    //
-    //PINNED CLOTH PARTICLES:
+    
+    // Boundary conditions
     boxes[0].x = offsetx;
     boxes[0].y = offsety;
-    // boxes[Math.round(xnodes/2)-1].x = ((xnodes-1)*gap/2) + offsetx;
-    // boxes[Math.round(xnodes/2)-1].y = offsety;
+    boxes[Math.round(xnodes/2)-1].x = ((xnodes-1)*gap/2) + offsetx;
+    boxes[Math.round(xnodes/2)-1].y = offsety;
     boxes[xnodes-1].x = ((xnodes-1)*gap) + offsetx;
     boxes[xnodes-1].y = offsety;
   }
-
-  // constrain a few of the the cloth particles to the origin 
 }
 
+//initialise the rest connections/constraints
 function connectivitySetup() 
 {
-  //first connect cols (easier to visualise
+  //first connect columns
   console.log("connectivity setup");
   var a, b;
-  var restLength = gap; // this will need changing 
+  
+  var restLength = gap; 
   var offset;
-  //n = 4
+  //horizontal connections
+  for (var i = 0; i <= xnodes-1; i++){
+    for (var off = 0; off < ynodes-1; off++) {
+      a = off*xnodes + i;
+      b = (off+1)*xnodes + i; 
+      console.log("a " + a + " b " + b);
+      var cons = new constraint(a,b, restLength);
+      conns.push(cons);
+    }
+  }
+ 
+  //vertical connections
   for(var off=0; off <= ynodes-1; off++) {
     offset = off*xnodes;
     for(var i=0; i<xnodes-1; i++) {
@@ -313,21 +269,21 @@ function connectivitySetup()
     }
   }
 
-  for (var i = 0; i <= xnodes-1; i++){
-    for (var off = 0; off < ynodes-1; off++) {
-      a = off*xnodes + i;
-      b = (off+1)*xnodes + i; 
-      console.log("a " + a + " b " + b);
-      var cons = new constraint(a,b, restLength);
-      conns.push(cons);
-    }
-  }
+  //diagonal connections
+  // for(var off=0; off < ynodes-1; off++){
+  //   offset = off*xnodes;
+  //   for(var k=0; k < xnodes-1; k++){
+  //     a = k + offset;
+  //     b = k + (off+1)*xnodes + 1;
+  //     console.log(a,b);
+  //     var cons = new constraint(a,b,diag); 
+  //     conns.push(cons);
+  //   }
+  // }
 
-  //number of constraints
-  console.log(conns.length);
-
+  //diagonal constraints 
   //check code
-  // console.log(conns.length);
+  console.log(conns.length);
   // for(var i = 0; i < conns.length; i++)
   // {
   //   console.log(conns[i].partA + " " + conns[i].partB);
@@ -337,7 +293,7 @@ function connectivitySetup()
   // }
 }
 
-//wipes the canvas context
+// wipes the canvas context
 function clear(c) 
 {
   c.clearRect(0, 0, WIDTH, HEIGHT);
@@ -352,13 +308,16 @@ function draw()
   if (canvasValid == false) {
     clear(ctx);
 
-    // Add stuff you want drawn in the background all the time here
+    // Constant background graphics drawn here
 
     // draw all boxes
     // var l = boxes.length;
-    // for (var i = 0; i < l; i++) {
-    //   drawshape(ctx, boxes[i], boxes[i].fill);
+    // for (var i = 0; i < boxes.length; i++) {
+    //    drawshape(ctx, boxes[i], boxes[i].fill);
     // }
+    for (var i = 0; i < boxes.length; i++) {
+       drawshape(ctx, boxes[i], '#fff');
+    }
 
     // draw selection
     // right now this is just a stroke along the edge of the selected box
@@ -367,29 +326,18 @@ function draw()
     //   ctx.lineWidth = mySelWidth;
     //   ctx.strokeRect(mySel.x,mySel.y,mySel.w,mySel.h);
     // }
-
-    // Add stuff you want drawn on top all the time here
-
     // canvasValid = true;
     //if(mySel != null)
     //  fall();
     timeStep();
-    drawLines();
+    drawLines(ctx);
   }
 }
 
-function drawLines()
+function drawLines(ctx)
 {
-  // ctx.moveTo(100, 150);
-  // ctx.lineTo(450, 50);
-  // ctx.strokeStyle = '#ff0000';
-  // ctx.lineWidth = 1;
-
-  // ctx.stroke();
-
   for(i=0; i<conns.length;i++)
   {
-    // console.log("called");
     var a = conns[i].partA;
     var b = conns[i].partB;
     ctx.beginPath();
@@ -399,9 +347,7 @@ function drawLines()
     ctx.lineTo(boxb.x,boxb.y);
 
     ctx.lineWidth = 1;
-    ctx.strokeStyle = '#000000';
-    // ctx.moveTo(100, 150);
-    // ctx.context.lineTo(450, 50);
+    ctx.strokeStyle = '#000';
     ctx.stroke();
   }
 }
@@ -413,41 +359,27 @@ function timeStep()
   SatisfyConstraints();
 }
 
-
-//we need to add 
-
-// function AccumulateForces()
-// {
-
-//   //assign gravity to all particles
-//   for(var i=0; i < nodes*nodes; i++)
-// }
-
-function fall()
-{
-  if(mySel.y > 0)
-  {
-    mySel.y = mySel.y - 5; 
-    // <!-- console.log("fall"); -->
-    invalidate(); 
-  }
-}
-
 // Draws a single shape to a single context
 // draw() will call this with the normal canvas
 // myDown will call this with the ghost canvas
-function drawshape(context, shape, fill) 
+function drawshape(ctx, shape, fill) 
 {
-  context.fillStyle = fill;
+  ctx.fillStyle = '#000';
 
   // We can skip the drawing of elements that have moved off the screen:
-  if (shape.x > WIDTH || shape.y > HEIGHT) return; 
-  if (shape.x + shape.w < 0 || shape.y + shape.h < 0) return;
+  // if (shape.x > WIDTH || shape.y > HEIGHT) return; 
+  // if (shape.x + shape. < 0 || shape.y + shape.h < 0) return;
 
-  context.fillRect(shape.x,shape.y,shape.w,shape.h);
+  // context.fillRect(shape.x,shape.y,shape.w,shape.h);
+  // context.fillRect(shape.x,shape.y,shape.w,shape.h);
+  ctx.beginPath();
+  ctx.arc(shape.x,shape.y,shape.radius,0,2*Math.PI);
+  ctx.stroke();
+  ctx.fill();
+
 }
 
-// Happens when the mouse is moving inside the canvas
+// Mouse activity
 function myMove(e)
 {
   if (isDrag){
@@ -461,8 +393,6 @@ function myMove(e)
   }
 }
 
-
-// Happens when the mouse is clicked in the canvas
 function myDown(e)
 {
   console.log(mx, my);
@@ -471,13 +401,14 @@ function myDown(e)
   getMouse(e);
   clear(gctx);
   var l = boxes.length;
+  
   for (var i = l-1; i >= 0; i--) {
     // draw shape onto ghost context
     drawshape(gctx, boxes[i], 'black');
 
     // get image data at the mouse x,y pixel
     var imageData = gctx.getImageData(mx, my, 1, 1);
-    var index = (mx + my * imageData.width) * 4; //what is this used for?
+    var index = (mx + my * imageData.width) * 4; 
 
     // if the mouse pixel exists, select and break
     if (imageData.data[3] > 0) {
@@ -486,18 +417,17 @@ function myDown(e)
       mySeli=i;
       var offsetxm = mx - mySel.x;
       var offsetym = my - mySel.y;
-      mySel.x = mx - offsetxm;
-      mySel.y = my - offsetym;
+      // mySel.x = mx - offsetxm;
+      // mySel.y = my - offsetym;
       isDrag = true;//;
       canvas.onmousemove = myMove;
       invalidate();
       clear(gctx);
       return;
     }
-
   }
 
-  // havent returned means we have selected nothing
+  // if haven't returned this means we have selected nothing
   mySel = null;
   // clear the ghost canvas for next time
   clear(gctx);
@@ -505,34 +435,17 @@ function myDown(e)
   invalidate();
 }
 
-function myUp()
+function myUp(e)
 {
-  //<!-- if(mySel != null) -->
-  //<!--   console.log(mySel.x); -->
-  //while(mySel.y != 0 && canvasValid == false){ 
-  // fall();
-  //invalidate(); 
-  //clear(gctx);
-  //setTimeout(hello, INTERVAL);
-  //}
-
-
-  // if(mySel != null && mySel.y > 0) { 
-  //   fall();
-  // }
-
+  // console.log(mx,my);
+  // console.log("My selection " + mySel.y);
+  // console.log(mySel.x);
   mySeli=null;
   isDrag = false;
   canvas.onmousemove = null;
 }
 
-function hello()
-{
-  console.log("Print");
-}
-
-
-// adds a new node
+// adds new node
 function myDblClick(e) 
 {
   getMouse(e);
@@ -569,10 +482,5 @@ function getMouse(e)
   offsetY += styleBorderTop;
 
   mx = e.pageX - offsetX;
-  my = e.pageY - offsetY
+  my = e.pageY - offsetY;
 }
-
-// If you dont want to use <body onLoad='init()'>
-// You could uncomment this init() reference and place the script reference inside the body tag
-//init();
-
