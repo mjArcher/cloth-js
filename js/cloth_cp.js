@@ -1,17 +1,18 @@
+//modulo operator on links
+//improved the boundary conditions 
+
 var offsetxm;
 var offsetym;
 var nodes = []; 
-// all connections
 var connx = []; 
-var offsetx;// = canvas.width/2;
-var offsety;// = 50; //canvas.height/2;
+var offsetx;
+var offsety;
 var ctx;
 var WIDTH;
 var HEIGHT;
 var isDrag = false;
-var mx, my; // mouse coordinates
-// The node (if any) being selected.
-// If in the future we want to select multiple object, turn into array
+var mx, my; 
+
 var mySel; 
 var mySeli;
 
@@ -32,8 +33,8 @@ var GRAVITY=9.8;
 var RADIUS=0.5;
 var LINEDWIDTH=0.2;
 
-// Padding and border style widths for mouse offsets
 var stylePaddingLeft, stylePaddingTop, styleBorderLeft, styleBorderTop;
+
 canvas = document.getElementById('myCanvas');
 
 function dist(x,y){
@@ -46,7 +47,8 @@ function addNode(px, py, r){
     y: py,
     oldx: px,
     oldy: py,
-    radius: r
+    radius: r,
+    fixed: false
   };
   nodes.push(node);
 }
@@ -62,7 +64,7 @@ function init()
   HEIGHT =  canvas.height;
   WIDTH =  canvas.width;
   offsetx = WIDTH/2 - xnodes*gap/2;
-  offsety = HEIGHT/5;
+  offsety = HEIGHT/2 - ynodes*gap/2;
   ctx = canvas.getContext('2d');
   canvas.onselectstart = function () { return false; }
 
@@ -86,8 +88,13 @@ function init()
       count++;
     }
   }
+  nodes[0].fixed = true;
+  nodes[Math.round(xnodes/2)-1].fixed = true;
+  nodes[xnodes-1].fixed = true;
   connectivitySetup();
 }
+
+
 
 function constraint(first, second, restLength) 
 {
@@ -98,17 +105,21 @@ function constraint(first, second, restLength)
 
 function Verlet() 
 {
+  var x, y, temp_x, temp_y;
   for(var i=0; i < NUM_PARTICLES; i++)
   {
     if(i!=mySeli){
-      var x = nodes[i].x;
-      var y = nodes[i].y;
-      var temp_x = x;
-      var temp_y = y;
-      nodes[i].x += x - nodes[i].oldx; 
-      nodes[i].y += y - nodes[i].oldy + GRAVITY * dts; 
-      nodes[i].oldx = temp_x;
-      nodes[i].oldy = temp_y;
+      if(!nodes[i].fixed)
+      {
+        x = nodes[i].x;
+        y = nodes[i].y;
+        temp_x = x;
+        temp_y = y;
+        nodes[i].x += x - nodes[i].oldx; 
+        nodes[i].y += y - nodes[i].oldy + GRAVITY * dts; 
+        nodes[i].oldx = temp_x;
+        nodes[i].oldy = temp_y;
+      }
     }
   }
 }
@@ -129,11 +140,11 @@ function SatisfyConstraints() {
         var diff=((gapsq/(dsq+gapsq))-0.5);
         dx*=diff;
         dy*=diff;
-        if(first == mySeli){
+        if(first == mySeli || nodes[first].fixed == true){
           box2.x += dx;
           box2.y += dy;
         }
-        else if(second == mySeli){
+        else if(second == mySeli || nodes[second].fixed == true){
           box1.x -= dx;
           box1.y -= dy;
         }
@@ -145,12 +156,18 @@ function SatisfyConstraints() {
         }
       }
     }
-    nodes[0].x = offsetx;
-    nodes[0].y = offsety;
-    nodes[Math.round(xnodes/2)-1].x = ((xnodes-1)*gap/2) + offsetx;
-    nodes[Math.round(xnodes/2)-1].y = offsety;
-    nodes[xnodes-1].x = ((xnodes-1)*gap) + offsetx;
-    nodes[xnodes-1].y = offsety;
+  }
+
+  for(var i=0; i < nodes.length; i++)
+  {
+    if(nodes[i].x > WIDTH - 10)
+      nodes[i].x = WIDTH - 10;
+    if(nodes[i].x < 10)
+      nodes[i].x = 10;
+    if(nodes[i].y > HEIGHT - 10)
+      nodes[i].y = HEIGHT - 10;
+    if(nodes[i].y < 10)
+      nodes[i].y = 10;
   }
 }
 
@@ -159,7 +176,6 @@ function connectivitySetup()
   connx = [];
   console.log("connectivity setup");
   var a, b;
-  
   var restLength = gap; 
   var offset;
   //horizontal connections
@@ -200,10 +216,11 @@ function draw()
   clear(ctx);
   ctx.fillStyle = '#000';
   ctx.fill();
-  // canvas.width = window.innerWidth;
-  // canvas.height = window.innerHeight;
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  HEIGHT = canvas.height;
+  WIDTH =  canvas.width;
   for (var i = 0; i < nodes.length; i++) {
-    //draw the nodes
     ctx.beginPath();
     ctx.arc(nodes[i].x, nodes[i].y,nodes[i].radius,0,TWO_PI);
     ctx.stroke();
@@ -240,7 +257,6 @@ function myMove(e)
   }
 }
 
-
 function mouse_track(e) {
   mx = e.clientX;
   my = e.clientY;
@@ -264,28 +280,6 @@ function myDown(e)
       break;
     }
   }
-
-  // for (var i = l-1; i >= 0; i--) {
-  //   // draw shape onto ghost context
-  //   drawshape(gctx, nodes[i], 'black');
-
-  //   // get image data at the mouse x,y pixel
-  //   var imageData = gctx.getImageData(mx, my, 1, 1);
-  //   var index = (mx + my * imageData.width) * 4; 
-    
-  //   // if the mouse pixel exists, select and break
-  //   if (imageData.data[3] > 0) {
-  //     console.log("Down" + i);
-  //     mySel = nodes[i];
-  //     mySeli=i;
-  //     var offsetxm = mx - mySel.x;
-  //     var offsetym = my - mySel.y;
-  //     canvas.onmousemove = myMove;
-  //     clear(gctx);
-  //     return;
-  //   }
-  // }
-  // mySel = null;
 }
 
 function myUp(e)
