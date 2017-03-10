@@ -203,7 +203,7 @@ function SatisfyConstraints() {
       // with Netwon Raphson iteration. 
       var dsq = deltax*deltax + deltay*deltay;
       gapsq = conns[i].restLength*conns[i].restLength;
-      var diff=((gapsq/(dsq+gapsq))-0.5)
+      var diff=((gapsq/(dsq+gapsq))-0.5);
       
       deltax*=diff;
       deltay*=diff;
