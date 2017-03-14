@@ -1,10 +1,12 @@
-//modulo operator on links
-//improved the boundary conditions 
+//Cloth based on Advanced Character Physics guide:
+//boolean value determines whether it is fixed or not
+// https://codepen.io/mjreachr/pen/xqwywM 
 
 var offsetxm;
 var offsetym;
 var nodes = []; 
 var connx = []; 
+var gaussian = [];
 var offsetx;
 var offsety;
 var ctx;
@@ -94,6 +96,83 @@ function init()
   connectivitySetup();
 }
 
+function gaussianDisturbance(x, mean, sigma)
+{
+  return (1/(sigma*Math.sqrt(TWO_PI)))*Math.exp(-(Math.pow(x-mean,2))/(2*Math.pow(sigma,2)));
+}
+
+var mean1 = 0.25;
+var mean2 = 0.75;
+var dt = 0.01;
+
+function plotGaussian()
+{
+  // clear(ctx);
+  var domx = xnodes;
+  var speed = 0.5;
+  mean1 += 0.5/(2*domx);
+  mean2 += 0.5/(2*domx);
+
+  if (mean1 > 0.75)
+    mean1 = -0.25;
+  if (mean2 > 0.75)
+    mean2 = -0.25;
+
+  var sigmasq = 0.09;
+
+  for(var i = 0; i < domx; i++)
+  {
+    gaussian[i] = Math.max(gaussianDisturbance((i/domx)/2,mean1,sigmasq), gaussianDisturbance((i/domx)/2,mean2,sigmasq));
+  }
+
+//   ctx.fillStyle = '#000';
+//   ctx.fill();
+//   for(var i = 0; i < domx; i++)
+//   {
+//       ctx.beginPath();
+//       ctx.arc(offsetx+i*gap/2,100+20*gaussianDisturbance((i/domx)/2,mean1,sigmasq),1.2,0,TWO_PI);
+//       ctx.stroke();
+//   }
+  
+//   for(var i = 0; i < domx; i++)
+//   {
+//       ctx.fillStyle = '#FAB';
+//       ctx.beginPath();
+//       ctx.arc(offsetx+i*gap/2,100+20*gaussianDisturbance((i/domx)/2,mean2,sigmasq),1.2,0,TWO_PI);
+//       ctx.stroke();
+//       ctx.fill();
+//   }
+
+  var goffx = 100;
+  var amp = 20;
+  ctx.fillStyle = '#FAB';
+  for(var i = 0; i < domx; i++)
+  {
+    ctx.beginPath();
+    ctx.arc(goffx+i*gap/2,goffx+amp*gaussian[i],1.2,0,TWO_PI);
+    ctx.stroke();
+    ctx.fill();
+  }
+
+  plotSampleGaussian();
+}
+
+function plotSampleGaussian()
+{
+  ctx.fillStyle = '#FAB';
+  var goffx, goffy = 100;
+  var amp = 20;
+  for(var i=0; i<ynodes; i++){
+    goffx = 100;
+    goffy += gap/2;
+    for(var j=0; j<xnodes; j++){
+      ctx.beginPath();
+      ctx.arc(goffx+j*gap/2,goffy+amp*gaussian[j],1.2,0,TWO_PI);
+      ctx.stroke();
+      ctx.fill();
+    }
+  }
+}
 
 
 function constraint(first, second, restLength) 
@@ -218,6 +297,7 @@ function draw()
   ctx.fill();
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
+
   HEIGHT = canvas.height;
   WIDTH =  canvas.width;
   for (var i = 0; i < nodes.length; i++) {
@@ -229,6 +309,7 @@ function draw()
   Verlet();
   SatisfyConstraints();
   drawLines(ctx);
+  plotGaussian();
   window.requestAnimationFrame(draw);
 }
 
