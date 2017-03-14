@@ -154,7 +154,7 @@ function plotGaussian()
     ctx.fill();
   }
 
-  plotSampleGaussian();
+  // plotSampleGaussian();
 }
 
 function plotSampleGaussian()
