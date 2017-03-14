@@ -90,10 +90,24 @@ function init()
       count++;
     }
   }
+
+  setupFlag();
+  connectivitySetup();
+}
+
+function setupCloth()
+{
   nodes[0].fixed = true;
   nodes[Math.round(xnodes/2)-1].fixed = true;
   nodes[xnodes-1].fixed = true;
-  connectivitySetup();
+}
+
+function setupFlag()
+{
+  for(var i = 0; i < ynodes; i++)
+  {
+    nodes[i*xnodes].fixed = true;
+  }
 }
 
 function gaussianDisturbance(x, mean, sigma)
@@ -104,6 +118,7 @@ function gaussianDisturbance(x, mean, sigma)
 var mean1 = 0.25;
 var mean2 = 0.75;
 var dt = 0.01;
+var amp = 20;
 
 function plotGaussian()
 {
@@ -112,6 +127,7 @@ function plotGaussian()
   var speed = 0.5;
   mean1 += 0.5/(2*domx);
   mean2 += 0.5/(2*domx);
+  var goffx = 100;
 
   if (mean1 > 0.75)
     mean1 = -0.25;
@@ -122,34 +138,14 @@ function plotGaussian()
 
   for(var i = 0; i < domx; i++)
   {
-    gaussian[i] = Math.max(gaussianDisturbance((i/domx)/2,mean1,sigmasq), gaussianDisturbance((i/domx)/2,mean2,sigmasq));
+    gaussian[i] = amp*Math.max(gaussianDisturbance((i/domx)/2,mean1,sigmasq), gaussianDisturbance((i/domx)/2,mean2,sigmasq));
   }
 
-//   ctx.fillStyle = '#000';
-//   ctx.fill();
-//   for(var i = 0; i < domx; i++)
-//   {
-//       ctx.beginPath();
-//       ctx.arc(offsetx+i*gap/2,100+20*gaussianDisturbance((i/domx)/2,mean1,sigmasq),1.2,0,TWO_PI);
-//       ctx.stroke();
-//   }
-  
-//   for(var i = 0; i < domx; i++)
-//   {
-//       ctx.fillStyle = '#FAB';
-//       ctx.beginPath();
-//       ctx.arc(offsetx+i*gap/2,100+20*gaussianDisturbance((i/domx)/2,mean2,sigmasq),1.2,0,TWO_PI);
-//       ctx.stroke();
-//       ctx.fill();
-//   }
-
-  var goffx = 100;
-  var amp = 20;
   ctx.fillStyle = '#FAB';
   for(var i = 0; i < domx; i++)
   {
     ctx.beginPath();
-    ctx.arc(goffx+i*gap/2,goffx+amp*gaussian[i],1.2,0,TWO_PI);
+    ctx.arc(goffx+i*gap/2,goffx+gaussian[i],1.2,0,TWO_PI);
     ctx.stroke();
     ctx.fill();
   }
@@ -161,7 +157,6 @@ function plotSampleGaussian()
 {
   ctx.fillStyle = '#FAB';
   var goffx, goffy = 100;
-  var amp = 20;
   for(var i=0; i<ynodes; i++){
     goffx = 100;
     goffy += gap/2;
@@ -194,7 +189,7 @@ function Verlet()
         y = nodes[i].y;
         temp_x = x;
         temp_y = y;
-        nodes[i].x += x - nodes[i].oldx; 
+        nodes[i].x += x - nodes[i].oldx + gaussian[i%xnodes]*dts;
         nodes[i].y += y - nodes[i].oldy + GRAVITY * dts; 
         nodes[i].oldx = temp_x;
         nodes[i].oldy = temp_y;
@@ -306,10 +301,10 @@ function draw()
     ctx.stroke();
   }
   //<!-- AccumulateForces(); -->
+  plotGaussian();
   Verlet();
   SatisfyConstraints();
   drawLines(ctx);
-  plotGaussian();
   window.requestAnimationFrame(draw);
 }
 
