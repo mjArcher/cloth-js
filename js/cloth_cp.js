@@ -119,6 +119,53 @@ var mean1 = 0.25;
 var mean2 = 0.75;
 var dt = 0.01;
 var amp = 20;
+var sigmasq = 0.09;
+
+//create sliders on dt, amp
+
+// use this as the waving flag looks artificial 
+var pamp = 20;
+var _noise = [];
+var noise_length = xnodes*20;
+var beginPtj = xnodes*19;
+
+//create perlin noise
+function genNoise()
+{
+  noise.seed(Math.random());
+  for(var i = 0; i < ynodes; i++)
+  {
+    for(var j = 0; j < noise_length; j++)
+    {
+      _noise.push(noise.simplex2(j/20,i/20));
+    }
+  }
+}
+
+
+function plotNoise()
+{
+  clear(ctx);
+  var goffy = 300;
+  var goffx = 100;
+  beginPtj--;
+  if(beginPtj < xnodes)
+    beginPtj = xnodes*19;
+
+  console.log(beginPtj)
+  for(var i = 0; i < ynodes; i++)
+  {
+    for(var j = 0; j < xnodes; j++)
+    {
+      var index = i*noise_length + beginPtj+j;
+      ctx.beginPath();
+      ctx.arc(goffx+j*gap/2,goffy+i*gap/2+pamp*_noise[index],1.2,0,TWO_PI);
+      ctx.stroke();
+      ctx.fill();
+    } 
+  }
+  window.requestAnimationFrame(plotNoise);
+}
 
 function plotGaussian()
 {
@@ -129,23 +176,23 @@ function plotGaussian()
   mean2 += 0.5/(2*domx);
   var goffx = 100;
 
+  // we plot the gaussian between 0 and 0.5
   if (mean1 > 0.75)
     mean1 = -0.25;
   if (mean2 > 0.75)
     mean2 = -0.25;
 
-  var sigmasq = 0.09;
-
   for(var i = 0; i < domx; i++)
   {
-    gaussian[i] = amp*Math.max(gaussianDisturbance((i/domx)/2,mean1,sigmasq), gaussianDisturbance((i/domx)/2,mean2,sigmasq));
+    gaussian[i] = amp*Math.max(gaussianDisturbance((i/domx)/2,mean1,sigmasq),
+      gaussianDisturbance((i/domx)/2,mean2,sigmasq));
   }
 
-  ctx.fillStyle = '#FAB';
+  ctx.fillStyle = '#000';
   for(var i = 0; i < domx; i++)
   {
     ctx.beginPath();
-    ctx.arc(goffx+i*gap/2,goffx+gaussian[i],1.2,0,TWO_PI);
+    ctx.arc(goffx+i*gap/2,goffx+gaussian[i],1.4,0,TWO_PI);
     ctx.stroke();
     ctx.fill();
   }
@@ -276,7 +323,9 @@ function connectivitySetup()
     }
   }
   NUM_CONSTRAINTS=connx.length;
-  window.requestAnimationFrame(draw);
+  genNoise();
+  // window.requestAnimationFrame(plotPerlinNoiseGen);
+  plotNoise();
 }
 
 // wipes the canvas context
