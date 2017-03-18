@@ -1,6 +1,20 @@
 //Cloth based on Advanced Character Physics guide:
 //boolean value determines whether it is fixed or not
 // https://codepen.io/mjreachr/pen/xqwywM 
+//
+// Extend
+// Flag
+// timestep
+// graphics on flag 
+// like a fluid? 
+// toggle options:
+// sliders for elasticity (number of iterations)
+// wind speed
+// wind amplitude
+// switch between disturbances. 
+
+// add node and remove fixed node
+//
 
 var offsetxm;
 var offsetym;
@@ -122,12 +136,12 @@ var amp = 20;
 var sigmasq = 0.09;
 
 //create sliders on dt, amp
-
 // use this as the waving flag looks artificial 
+
 var pamp = 20;
 var _noise = [];
 var noise_length = xnodes*20;
-var beginPtj = xnodes*19;
+var beginPtj = xnodes*19; 
 
 //create perlin noise
 function genNoise()
@@ -176,7 +190,7 @@ function plotGaussian()
   mean2 += 0.5/(2*domx);
   var goffx = 100;
 
-  // we plot the gaussian between 0 and 0.5
+  // plot the gaussian between 0 and 0.5
   if (mean1 > 0.75)
     mean1 = -0.25;
   if (mean2 > 0.75)
@@ -323,9 +337,9 @@ function connectivitySetup()
     }
   }
   NUM_CONSTRAINTS=connx.length;
-  genNoise();
-  // window.requestAnimationFrame(plotPerlinNoiseGen);
-  plotNoise();
+  // genNoise();
+  // plotNoise();
+  // window.requestAnimationFrame(draw);
 }
 
 // wipes the canvas context
