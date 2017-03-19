@@ -3,18 +3,17 @@
 // https://codepen.io/mjreachr/pen/xqwywM 
 //
 // Extend
-// Flag
-// timestep
+// Flag with warped graphics - needs to be a lot faster though
 // graphics on flag 
 // like a fluid? 
+
+// Easy things to change 
+// Proper timestep
 // toggle options:
 // sliders for elasticity (number of iterations)
-// wind speed (how to do this for the perlin noise)
+// speed
 // wind amplitude
 // switch between disturbances. 
-
-// add node and remove fixed node
-//
 
 var offsetxm;
 var offsetym;
@@ -105,8 +104,10 @@ function init()
     }
   }
 
+  simplexNoise();
   setupFlag();
   connectivitySetup();
+  window.requestAnimationFrame(draw);
 }
 
 function setupFlag()
@@ -123,7 +124,6 @@ function setupFlag()
 var mean1 = 0.25;
 var mean2 = 0.75;
 var sigmasq = 0.09;
-var windSpeed = 1.0;
 
 //create sliders on dt, amp
 // use this as the waving flag looks artificial 
@@ -138,8 +138,9 @@ var beginPtj = beginPtj_init;
 var wind_params = { 
   strength : 20, //0-100
   speed : 1, // 0-1
-  mode : "sine";
-}
+  mode : "simplex",
+  iters : 2
+};
 // initialise arrays, wind
 for(var i = 0; i < NUM_PARTICLES; i++)
 {
@@ -147,7 +148,7 @@ for(var i = 0; i < NUM_PARTICLES; i++)
   // _noise.push(0); // actually much bigger than this 
 }
 
-function genNoise()
+function simplexNoise()
 {
   noise.seed(Math.random());
   for(var i = 0; i < ynodes; i++)
@@ -159,6 +160,7 @@ function genNoise()
   }
 }
 
+
 function gaussianDisturbance(x, mean, sigma)
 {
   return (1/(sigma*Math.sqrt(TWO_PI)))*Math.exp(-(Math.pow(x-mean,2))/(2*Math.pow(sigma,2)));
@@ -167,25 +169,22 @@ function gaussianDisturbance(x, mean, sigma)
 
 function set_wind()
 {
-  var index;
-  var windamp = wind_params.strength;
-  if(wind_params.mode = "sine")
+  var index, windamp = wind_params.strength;
+  if(wind_params.mode == "sine")
   {
     for(var i=0; i < ynodes; i++)
       for(var j=0; j < xnodes; j++)
       {
-        index = i*xnodes+j;
-        wind[index] = windamp*gaussian[i];
+        wind[i*xnodes+j] = windamp*gaussian[j];
       }
   }
-  else if (wind_params.mode = "simplex")
+  else if (wind_params.mode == "simplex")
   {
-
     for(var i=0; i < ynodes; i++)
       for(var j=0; j < xnodes; j++)
       {
         var index = i*noise_length+beginPtj+j;
-        wind[i*xnodes+j] = _noise[index];
+        wind[i*xnodes+j] = windamp*_noise[index];
       }
   }
 }
@@ -193,10 +192,10 @@ function set_wind()
 
 function move()
 {
-  // update noise and gaussian wind and do verlet
-
-  mean1 += windSpeed/(2*xnodes); //changes the wind speed
-  mean2 += windSpeed/(2*xnodes);
+  // gaussian wind speed 
+  var inc = wind_params.speed/(2*xnodes);
+  mean1 += inc; //changes the wind speed
+  mean2 += inc;
 
   // plot the gaussian between 0 and 0.5
   if (mean1 > 0.75)
@@ -211,12 +210,12 @@ function move()
   }
 
   // perlin noise
-  //
-  
   beginPtj-=1;
   if(beginPtj < xnodes)
     beginPtj = beginPtj_init
 
+  //set the wind after update 
+  set_wind();
   // do the verlet bit 
   var x, y, temp_x, temp_y;
   var acc_x, acc_y = GRAVITY;
@@ -243,7 +242,7 @@ function move()
 
 function SatisfyConstraints() {
   var dx, dy, dsq;
-  for(var j=0; j<NUM_ITERATIONS; j++) {
+  for(var j=0; j<wind_params.iters; j++) {
     for(var i=0; i<NUM_CONSTRAINTS; i++) {
       var first = connx[i].first;
       var second = connx[i].second;
@@ -327,10 +326,6 @@ function connectivitySetup()
     }
   }
   NUM_CONSTRAINTS=connx.length;
-  genNoise();
-  plotNoise();
-  // genGaussianWind();
-  window.requestAnimationFrame(draw);
 }
 
 // wipes the canvas context
@@ -356,12 +351,24 @@ function draw()
     ctx.stroke();
   }
   //<!-- AccumulateForces(); -->
-  plotNoise();
-  // genGaussianWind();
-  Verlet();
+  move();
   SatisfyConstraints();
+  drawWind();
   // drawLines(ctx);
   window.requestAnimationFrame(draw);
+}
+
+function drawWind()
+{
+  var goffy = 300;
+  var goffx = 100;
+  for (var i = 0; i < ynodes; i++) {
+    for (var j = 0; j < xnodes; j++) {
+      ctx.beginPath();
+      ctx.arc(goffx+j*gap/2,goffy+i*gap/2+wind[i*xnodes+j],1.2,0,TWO_PI);
+      ctx.stroke();
+    }
+  }
 }
 
 function drawLines(ctx)
