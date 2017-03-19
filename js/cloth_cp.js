@@ -6,14 +6,10 @@
 // Flag with warped graphics - needs to be a lot faster though
 // graphics on flag 
 // like a fluid? 
-
-// Easy things to change 
-// Proper timestep
-// toggle options:
-// sliders for elasticity (number of iterations)
-// speed
-// wind amplitude
-// switch between disturbances. 
+//
+// problems:
+// scale to window
+// the gaussian is wrong
 
 var offsetxm;
 var offsetym;
@@ -136,11 +132,13 @@ var beginPtj = beginPtj_init;
 
 //wind direction?
 var wind_params = { 
-  strength : 20, //0-100
-  speed : 1, // 0-1
-  mode : "simplex",
-  iters : 2
+  strength : 10, //0-100
+  speed : 0.5, // 0-1
+  gaussian : true,
+  simplex : false,
+  iterations: 2 // doesn't work with a single iteration ???
 };
+
 // initialise arrays, wind
 for(var i = 0; i < NUM_PARTICLES; i++)
 {
@@ -155,7 +153,7 @@ function simplexNoise()
   {
     for(var j = 0; j < noise_length; j++)
     {
-      _noise.push((1+noise.simplex2(j/xnodes,i/ynodes))/2);
+      _noise.push(Math.abs(noise.simplex2(j/xnodes,i/ynodes)));
     }
   }
 }
@@ -170,7 +168,7 @@ function gaussianDisturbance(x, mean, sigma)
 function set_wind()
 {
   var index, windamp = wind_params.strength;
-  if(wind_params.mode == "sine")
+  if(wind_params.gaussian)
   {
     for(var i=0; i < ynodes; i++)
       for(var j=0; j < xnodes; j++)
@@ -178,7 +176,7 @@ function set_wind()
         wind[i*xnodes+j] = windamp*gaussian[j];
       }
   }
-  else if (wind_params.mode == "simplex")
+  else if (wind_params.simplex)
   {
     for(var i=0; i < ynodes; i++)
       for(var j=0; j < xnodes; j++)
@@ -190,7 +188,7 @@ function set_wind()
 }
 
 
-function move()
+function move(dt)
 {
   // gaussian wind speed 
   var inc = wind_params.speed/(2*xnodes);
@@ -230,8 +228,8 @@ function move()
         y = nodes[i].y;
         temp_x = x;
         temp_y = y;
-        nodes[i].x += x - nodes[i].oldx + acc_x * dts; 
-        nodes[i].y += y - nodes[i].oldy + acc_y * dts; 
+        nodes[i].x += x - nodes[i].oldx + acc_x * dt; 
+        nodes[i].y += y - nodes[i].oldy + acc_y * dt; 
         nodes[i].oldx = temp_x;
         nodes[i].oldy = temp_y;
       }
@@ -239,18 +237,22 @@ function move()
   }
 }
 
+//
+
 
 function SatisfyConstraints() {
   var dx, dy, dsq;
-  for(var j=0; j<wind_params.iters; j++) {
+  for(var j=0; j<wind_params.iterations; j++) {
     for(var i=0; i<NUM_CONSTRAINTS; i++) {
       var first = connx[i].first;
       var second = connx[i].second;
       var box1 = nodes[first];
       var box2 = nodes[second];
+      // sqrt approximation
       dx = box2.x - box1.x;
       dy = box2.y - box1.y;
       dsq = dx*dx + dy*dy;
+
       if(dsq > gapsq)
       {
         var diff=((gapsq/(dsq+gapsq))-0.5);
@@ -334,9 +336,36 @@ function clear(c)
   c.clearRect(0, 0, WIDTH, HEIGHT);
 }
 
+
+var time = Date.now();
+var dt = 1/60;
+var fps;
+var newtime;
+var frametime;
+var accumulator = 0;
+var alpha;
+var step = 0;
+
 function draw() 
 {
-  clear(ctx);
+  step += 0.5;
+  newtime = Date.now();
+  frametime = newtime - time;
+  fps = 1000 / (frametime);
+  time = newtime;
+
+  //Effectively pause simulation when tab is out of focus
+ 
+  if (fps > 10) {
+    accumulator += frametime/1000;
+    while ( accumulator >= dt ){
+      SatisfyConstraints();
+      move(dt, step);
+      accumulator -= dt;
+    }
+    alpha = accumulator / dt;
+  }
+
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
 
@@ -350,10 +379,9 @@ function draw()
     ctx.arc(nodes[i].x, nodes[i].y,nodes[i].radius,0,TWO_PI);
     ctx.stroke();
   }
-  //<!-- AccumulateForces(); -->
-  move();
-  SatisfyConstraints();
+
   drawWind();
+  //<!-- AccumulateForces(); -->
   // drawLines(ctx);
   window.requestAnimationFrame(draw);
 }
@@ -452,3 +480,16 @@ function getMouse(e)
   mx = e.pageX - offsetX;
   my = e.pageY - offsetY;
 }
+
+// GUI STUFF
+
+var gui = new dat.GUI();
+gui.add(wind_params, 'gaussian').listen().onChange(function(value){ 
+  wind_params.simplex = !value; });
+gui.add(wind_params, 'simplex').listen().onChange(function(value){ 
+  wind_params.gaussian = !value; });
+
+// Listen to changes within the GUI
+gui.add(wind_params, 'speed').min(0).max(1).step(0.1);
+gui.add(wind_params, 'strength').min(1).max(100).step(1);
+gui.add(wind_params, 'iterations').min(1).max(50).step(1);
