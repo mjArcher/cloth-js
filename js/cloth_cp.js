@@ -1,7 +1,6 @@
 //Cloth based on Advanced Character Physics guide:
 //boolean value determines whether it is fixed or not
 // https://codepen.io/mjreachr/pen/xqwywM 
-//
 // Extend
 // Flag with warped graphics - needs to be a lot faster though
 // graphics on flag 
@@ -29,7 +28,7 @@ var mySel;
 var mySeli;
 
 var canvas;
-var gap = 10;
+var gap = 5;
 var gapsq = gap*gap;
 var gappsq = 2*gapsq;
 var diag = Math.sqrt(gappsq);
@@ -111,19 +110,17 @@ function setupFlag()
   for(var i = 0; i < ynodes; i++)
   {
     nodes[i*xnodes].fixed = true;
+    nodes[i*xnodes].x = offsetx;
+    nodes[i*xnodes].y = offsety+gap*i;
   }
 }
 
 //wind speed?
-
-
 var mean1 = 0.25;
 var mean2 = 0.75;
-var sigmasq = 0.09;
+var sigmasq = 0.09; // might be the reason
 
-//create sliders on dt, amp
-// use this as the waving flag looks artificial 
-
+//the simplex noise parameters
 var _noise = [];
 var noise_repeat = 20; // compute perlin noise for 20 xnodes cycles 
 var noise_length = xnodes*noise_repeat;
@@ -133,7 +130,7 @@ var beginPtj = beginPtj_init;
 //wind direction?
 var wind_params = { 
   strength : 10, //0-100
-  speed : 0.5, // 0-1
+  speed : 0.1, // 0-1
   gaussian : true,
   simplex : false,
   iterations: 2 // doesn't work with a single iteration ???
@@ -236,9 +233,6 @@ function move(dt)
     }
   }
 }
-
-//
-
 
 function SatisfyConstraints() {
   var dx, dy, dsq;
@@ -360,7 +354,7 @@ function draw()
     accumulator += frametime/1000;
     while ( accumulator >= dt ){
       SatisfyConstraints();
-      move(dt, step);
+      move(dt);
       accumulator -= dt;
     }
     alpha = accumulator / dt;
@@ -371,6 +365,10 @@ function draw()
 
   HEIGHT = canvas.height;
   WIDTH =  canvas.width;
+
+  setupFlag();
+  offsetx = WIDTH/2 - xnodes*gap/2;
+  offsety = HEIGHT/2 - ynodes*gap/2;
 
   ctx.fillStyle = '#000';
   ctx.fill();
@@ -388,12 +386,12 @@ function draw()
 
 function drawWind()
 {
-  var goffy = 300;
-  var goffx = 100;
+  var goffy = HEIGHT/2;
+  var goffx = WIDTH/6;
   for (var i = 0; i < ynodes; i++) {
     for (var j = 0; j < xnodes; j++) {
       ctx.beginPath();
-      ctx.arc(goffx+j*gap/2,goffy+i*gap/2+wind[i*xnodes+j],1.2,0,TWO_PI);
+      ctx.arc(goffx+j*gap/2,goffy+i*gap/2+wind[i*xnodes+j],RADIUS,0,TWO_PI);
       ctx.stroke();
     }
   }
