@@ -9,7 +9,7 @@
 // like a fluid? 
 // toggle options:
 // sliders for elasticity (number of iterations)
-// wind speed
+// wind speed (how to do this for the perlin noise)
 // wind amplitude
 // switch between disturbances. 
 
@@ -21,6 +21,7 @@ var offsetym;
 var nodes = []; 
 var connx = []; 
 var gaussian = [];
+var wind = [];
 var offsetx;
 var offsety;
 var ctx;
@@ -43,7 +44,6 @@ var dts = 0.01;
 
 var TWO_PI=2*Math.PI;
 var NUM_PARTICLES=xnodes*ynodes;
-var NUM_ITERATIONS=2;
 var NUM_CONSTRAINTS;
 var GRAVITY=9.8;
 var RADIUS=0.5;
@@ -109,13 +109,6 @@ function init()
   connectivitySetup();
 }
 
-function setupCloth()
-{
-  nodes[0].fixed = true;
-  nodes[Math.round(xnodes/2)-1].fixed = true;
-  nodes[xnodes-1].fixed = true;
-}
-
 function setupFlag()
 {
   for(var i = 0; i < ynodes; i++)
@@ -124,26 +117,36 @@ function setupFlag()
   }
 }
 
-function gaussianDisturbance(x, mean, sigma)
-{
-  return (1/(sigma*Math.sqrt(TWO_PI)))*Math.exp(-(Math.pow(x-mean,2))/(2*Math.pow(sigma,2)));
-}
+//wind speed?
+
 
 var mean1 = 0.25;
 var mean2 = 0.75;
-var dt = 0.01;
-var amp = 20;
 var sigmasq = 0.09;
+var windSpeed = 1.0;
 
 //create sliders on dt, amp
 // use this as the waving flag looks artificial 
 
-var pamp = 20;
 var _noise = [];
-var noise_length = xnodes*20;
-var beginPtj = xnodes*19; 
+var noise_repeat = 20; // compute perlin noise for 20 xnodes cycles 
+var noise_length = xnodes*noise_repeat;
+var beginPtj_init = xnodes*(noise_repeat-1); 
+var beginPtj = beginPtj_init;
 
-//create perlin noise
+//wind direction?
+var wind_params = { 
+  strength : 20, //0-100
+  speed : 1, // 0-1
+  mode : "sine";
+}
+// initialise arrays, wind
+for(var i = 0; i < NUM_PARTICLES; i++)
+{
+  wind.push(0);
+  // _noise.push(0); // actually much bigger than this 
+}
+
 function genNoise()
 {
   noise.seed(Math.random());
@@ -151,44 +154,49 @@ function genNoise()
   {
     for(var j = 0; j < noise_length; j++)
     {
-      _noise.push(noise.simplex2(j/20,i/20));
+      _noise.push((1+noise.simplex2(j/xnodes,i/ynodes))/2);
     }
   }
 }
 
-
-function plotNoise()
+function gaussianDisturbance(x, mean, sigma)
 {
-  clear(ctx);
-  var goffy = 300;
-  var goffx = 100;
-  beginPtj--;
-  if(beginPtj < xnodes)
-    beginPtj = xnodes*19;
-
-  console.log(beginPtj)
-  for(var i = 0; i < ynodes; i++)
-  {
-    for(var j = 0; j < xnodes; j++)
-    {
-      var index = i*noise_length + beginPtj+j;
-      ctx.beginPath();
-      ctx.arc(goffx+j*gap/2,goffy+i*gap/2+pamp*_noise[index],1.2,0,TWO_PI);
-      ctx.stroke();
-      ctx.fill();
-    } 
-  }
-  window.requestAnimationFrame(plotNoise);
+  return (1/(sigma*Math.sqrt(TWO_PI)))*Math.exp(-(Math.pow(x-mean,2))/(2*Math.pow(sigma,2)));
 }
 
-function plotGaussian()
+
+function set_wind()
 {
-  // clear(ctx);
-  var domx = xnodes;
-  var speed = 0.5;
-  mean1 += 0.5/(2*domx);
-  mean2 += 0.5/(2*domx);
-  var goffx = 100;
+  var index;
+  var windamp = wind_params.strength;
+  if(wind_params.mode = "sine")
+  {
+    for(var i=0; i < ynodes; i++)
+      for(var j=0; j < xnodes; j++)
+      {
+        index = i*xnodes+j;
+        wind[index] = windamp*gaussian[i];
+      }
+  }
+  else if (wind_params.mode = "simplex")
+  {
+
+    for(var i=0; i < ynodes; i++)
+      for(var j=0; j < xnodes; j++)
+      {
+        var index = i*noise_length+beginPtj+j;
+        wind[i*xnodes+j] = _noise[index];
+      }
+  }
+}
+
+
+function move()
+{
+  // update noise and gaussian wind and do verlet
+
+  mean1 += windSpeed/(2*xnodes); //changes the wind speed
+  mean2 += windSpeed/(2*xnodes);
 
   // plot the gaussian between 0 and 0.5
   if (mean1 > 0.75)
@@ -196,68 +204,42 @@ function plotGaussian()
   if (mean2 > 0.75)
     mean2 = -0.25;
 
-  for(var i = 0; i < domx; i++)
+  for(var i = 0; i < xnodes; i++)
   {
-    gaussian[i] = amp*Math.max(gaussianDisturbance((i/domx)/2,mean1,sigmasq),
-      gaussianDisturbance((i/domx)/2,mean2,sigmasq));
+    gaussian[i] = Math.max(gaussianDisturbance((i/xnodes)/2,mean1,sigmasq),
+      gaussianDisturbance((i/xnodes)/2,mean2,sigmasq));
   }
 
-  ctx.fillStyle = '#000';
-  for(var i = 0; i < domx; i++)
-  {
-    ctx.beginPath();
-    ctx.arc(goffx+i*gap/2,goffx+gaussian[i],1.4,0,TWO_PI);
-    ctx.stroke();
-    ctx.fill();
-  }
+  // perlin noise
+  //
+  
+  beginPtj-=1;
+  if(beginPtj < xnodes)
+    beginPtj = beginPtj_init
 
-  // plotSampleGaussian();
-}
-
-function plotSampleGaussian()
-{
-  ctx.fillStyle = '#FAB';
-  var goffx, goffy = 100;
-  for(var i=0; i<ynodes; i++){
-    goffx = 100;
-    goffy += gap/2;
-    for(var j=0; j<xnodes; j++){
-      ctx.beginPath();
-      ctx.arc(goffx+j*gap/2,goffy+amp*gaussian[j],1.2,0,TWO_PI);
-      ctx.stroke();
-      ctx.fill();
-    }
-  }
-}
-
-
-function constraint(first, second, restLength) 
-{
-  this.first = first;
-  this.second = second;
-  this.restLength = restLength; 
-}
-
-function Verlet() 
-{
+  // do the verlet bit 
   var x, y, temp_x, temp_y;
+  var acc_x, acc_y = GRAVITY;
+
   for(var i=0; i < NUM_PARTICLES; i++)
   {
     if(i!=mySeli){
       if(!nodes[i].fixed)
       {
+        acc_x = wind[i];
         x = nodes[i].x;
         y = nodes[i].y;
         temp_x = x;
         temp_y = y;
-        nodes[i].x += x - nodes[i].oldx + gaussian[i%xnodes]*dts;
-        nodes[i].y += y - nodes[i].oldy + GRAVITY * dts; 
+        nodes[i].x += x - nodes[i].oldx + acc_x * dts; 
+        nodes[i].y += y - nodes[i].oldy + acc_y * dts; 
         nodes[i].oldx = temp_x;
         nodes[i].oldy = temp_y;
       }
     }
   }
 }
+
 
 function SatisfyConstraints() {
   var dx, dy, dsq;
@@ -306,10 +288,18 @@ function SatisfyConstraints() {
   }
 }
 
+function constraint(first, second, restLength) 
+{
+  this.first = first;
+  this.second = second;
+  this.restLength = restLength; 
+}
+
+//needs to be rethought
 function connectivitySetup() 
 {
   connx = [];
-  console.log("connectivity setup");
+  // console.log("connectivity setup");
   var a, b;
   var restLength = gap; 
   var offset;
@@ -318,7 +308,7 @@ function connectivitySetup()
     for (var off = 0; off < ynodes-1; off++) {
       a = off*xnodes + i;
       b = (off+1)*xnodes + i; 
-      console.log("a " + a + " b " + b);
+      // console.log("a " + a + " b " + b);
       var con = new constraint(a,b,restLength);
       connx.push(con);
     }
@@ -330,16 +320,17 @@ function connectivitySetup()
     for(var i=0; i<xnodes-1; i++) {
       a = i + offset; //next row
       b = i + 1 + offset;
-      console.log("a " + a + " b " + b);
+      // console.log("a " + a + " b " + b);
       // <!-- console.log(a + " " + b); -->
       var con = new constraint(a,b,restLength);
       connx.push(con);
     }
   }
   NUM_CONSTRAINTS=connx.length;
-  // genNoise();
-  // plotNoise();
-  // window.requestAnimationFrame(draw);
+  genNoise();
+  plotNoise();
+  // genGaussianWind();
+  window.requestAnimationFrame(draw);
 }
 
 // wipes the canvas context
@@ -351,23 +342,25 @@ function clear(c)
 function draw() 
 {
   clear(ctx);
-  ctx.fillStyle = '#000';
-  ctx.fill();
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
 
   HEIGHT = canvas.height;
   WIDTH =  canvas.width;
+
+  ctx.fillStyle = '#000';
+  ctx.fill();
   for (var i = 0; i < nodes.length; i++) {
     ctx.beginPath();
     ctx.arc(nodes[i].x, nodes[i].y,nodes[i].radius,0,TWO_PI);
     ctx.stroke();
   }
   //<!-- AccumulateForces(); -->
-  plotGaussian();
+  plotNoise();
+  // genGaussianWind();
   Verlet();
   SatisfyConstraints();
-  drawLines(ctx);
+  // drawLines(ctx);
   window.requestAnimationFrame(draw);
 }
 
