@@ -1,3 +1,6 @@
 [submodule "js/libs/dat.gui"]
 	path = js/libs/dat.gui
 	url = https://github.com/dataarts/dat.gui
+[submodule "js/libs/noisejs"]
+	path = js/libs/noisejs
+	url = https://github.com/josephg/noisejs
