@@ -2,17 +2,10 @@
 //Cloth based on Advanced Character Physics guide:
 //boolean value determines whether it is fixed or not
 // https://codepen.io/mjreachr/pen/xqwywM 
-// Extend
 // Flag with warped graphics - needs to be a lot faster though
 // graphics on flag 
-// like a fluid? 
-//
-// problems:
-// scale to window
-// the gaussian is wrong
+// https://gamedevelopment.tutsplus.com/tutorials/simulate-tearable-cloth-and-ragdolls-with-simple-verlet-integration--gamedev-519
 
-var offsetxm;
-var offsetym;
 var nodes = []; 
 var connx = []; 
 var offsetx;
@@ -28,12 +21,11 @@ var active_node;
 
 var xnodes = 25;
 var ynodes = 25;
-var dts = 0.01;
 
 var TWO_PI=2*Math.PI;
 var node_count=xnodes*ynodes;
 var num_constraints;
-var iterations = 10;
+var iterations = 3;
 var gravity = 9.8;
 var RADIUS = 0.5;
 var LINEDWIDTH=0.2;
@@ -92,12 +84,10 @@ function init()
   canvas.onmousedown = mouse_down;
   canvas.onmouseup = mouse_up;
 
-  var count = 0;
   for (var i = 0; i < node_count; i++) {
     var x = Math.floor(i%xnodes)*dx + offsetx;
     var y = Math.floor(i/ynodes)*dy + offsety;
     addNode(x, y, RADIUS);
-    count++;
   }
 
   nodes[0].fixed = true;
@@ -117,11 +107,9 @@ function move(dt)
   var x, y, temp_x, temp_y;
   var acc_x = 0, acc_y = gravity;
 
-  for(var i = 0; i < node_count; i++)
-  {
+  for(var i = 0; i < node_count; i++) {
     if(i!=active_node){
-      if(!nodes[i].fixed)
-      {
+      if(!nodes[i].fixed) { //don't have to check every time : efficiency?
         x = nodes[i].x;
         y = nodes[i].y;
         temp_x = x;
@@ -135,8 +123,12 @@ function move(dt)
   }
 }
 
-function SatisfyConstraints() {
+function resolve_constraints() {
   var dx, dy, dsq;
+  var diff;
+  var transX;
+  var transY;
+
   for(var j=0; j < iterations; j++){
     for(var i=0; i < num_constraints; i++) {
       var first = nodes[connx[i].first];
@@ -145,25 +137,27 @@ function SatisfyConstraints() {
       dx = second.x - first.x;
       dy = second.y - first.y;
       dsq = dx*dx + dy*dy;
+      d = Math.sqrt(dsq);
 
-      if(dsq > dxsq)
+      if(dsq > dxsq) // prevents snapping
       {
-        var diff=((dxsq/(dsq+dxsq))-0.5);
-        dx*=diff;
-        dy*=diff;
+        // diff=((dxsq/(dsq+dxsq))-0.5);
+        diff=(delta - d)/d;
+        transX = dx * 0.5 * diff;
+        transY = dy * 0.5 * diff;
         if(connx[i].first == active_node || nodes[connx[i].first].fixed == true){
-          second.x += dx;
-          second.y += dy;
+          second.x += transX;
+          second.y += transY;
         }
         else if(connx[i].second == active_node || nodes[connx[i].second].fixed == true){
-          first.x -= dx;
-          first.y -= dy;
+          first.x -= transX;
+          first.y -= transY;
         }
         else{
-          first.x -= dx;
-          first.y -= dy;
-          second.x += dx;
-          second.y += dy;
+          first.x -= transX;
+          first.y -= transY;
+          second.x += transX;
+          second.y += transY;
         }
       }
     }
@@ -240,7 +234,7 @@ function draw()
   if (fps > 10) {
     accumulator += frametime/1000;
     while ( accumulator >= dt ){
-      SatisfyConstraints();
+      resolve_constraints();
       move(dt);
       accumulator -= dt;
     }
@@ -265,7 +259,7 @@ function draw()
   }
 
   //<!-- AccumulateForces(); -->
-  // drawLines(ctx);
+  drawLines(ctx);
   window.requestAnimationFrame(draw);
 }
 
@@ -311,6 +305,8 @@ function mouse_down(e)
     {
       nodes[i].x = mx; 
       nodes[i].y = my;
+      nodes[i].oldx = mx; 
+      nodes[i].oldy = my;
       mySel = nodes[i];
       active_node = i;
       isDrag = true;

@@ -190,8 +190,8 @@ function SatisfyConstraints() {
       var b = conns[i].partB;
       var box1 = boxes[a];
       var box2 = boxes[b];
-      var deltax = box2.x - box1.x;
-      var deltay = box2.y - box1.y;
+      var dx = box2.x - box1.x;
+      var dy = box2.y - box1.y;
       
       // Original Sqrt method:
       // console.log(a + " " + boxa.x);  
@@ -201,28 +201,28 @@ function SatisfyConstraints() {
    
       // distance between two points - sqrt replaced
       // with Netwon Raphson iteration. 
-      var dsq = deltax*deltax + deltay*deltay;
+      var dsq = dx*dx + dy*dy;
       gapsq = conns[i].restLength*conns[i].restLength;
       var diff=((gapsq/(dsq+gapsq))-0.5);
       
-      deltax*=diff;
-      deltay*=diff;
+      dx*=diff;
+      dy*=diff;
       
       // ensures that the 
       if(a == mySeli){
-        box2.x += deltax;
-        box2.y += deltay;
+        box2.x += dx;
+        box2.y += dy;
       }
-      else if(b == mySeli)
+      else if(b == mySeli)|| nodes[a].fixed == true)
       {
-        box1.x -= deltax;
-        box1.y -= deltay;
+        box1.x -= dx;
+        box1.y -= dy;
       }
       else{
-        box1.x -= deltax;
-        box1.y -= deltay;
-        box2.x += deltax;
-        box2.y += deltay;
+        box1.x -= dx;
+        box1.y -= dy;
+        box2.x += dx;
+        box2.y += dy;
       }
     }
     
